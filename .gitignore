@@ -1,4 +1,8 @@
 HELP.md
+
+### 시크릿 파일 - 절대 커밋 금지 ###
+src/main/resources/application-local.yml
+src/main/resources/application-secret.yml
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

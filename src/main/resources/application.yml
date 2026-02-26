@@ -19,3 +19,9 @@ spring:
       host: localhost
       port: 6379
       password:
+
+# JWT 설정 (실제 값은 application-local.yml 또는 환경변수로 관리)
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiry: 1800000     # 30분 (ms)
+  refresh-token-expiry: 1209600000 # 14일 (ms)
