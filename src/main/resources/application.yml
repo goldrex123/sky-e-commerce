@@ -20,6 +20,10 @@ spring:
       port: 6379
       password:
 
+# 프론트엔드 URL (OAuth2 콜백 리다이렉트 대상)
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
 # JWT 설정 (실제 값은 application-local.yml 또는 환경변수로 관리)
 jwt:
   secret: ${JWT_SECRET}
