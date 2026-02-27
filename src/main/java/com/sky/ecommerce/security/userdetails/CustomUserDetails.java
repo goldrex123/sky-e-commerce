@@ -2,23 +2,37 @@ package com.sky.ecommerce.security.userdetails;
 
 import com.sky.ecommerce.domain.user.entity.User;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Spring Security의 UserDetails 구현체
- * - 우리의 User 엔티티를 Security가 이해할 수 있는 형태로 감싸는 Adapter
+ * Spring Security의 UserDetails + OAuth2User 통합 구현체
+ * - 일반 로그인: UserDetails로 동작 (attributes = null)
+ * - OAuth2 로그인: OAuth2User로 동작 (attributes = 카카오 응답)
  */
 @Getter
-@RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {
+public class CustomUserDetails implements UserDetails, OAuth2User {
 
     private final User user;
+    private final Map<String, Object> attributes; // OAuth2 로그인 시에만 사용
+
+    // 일반 로그인용 생성자
+    public CustomUserDetails(User user) {
+        this.user = user;
+        this.attributes = null;
+    }
+
+    // OAuth2 로그인용 생성자
+    public CustomUserDetails(User user, Map<String, Object> attributes) {
+        this.user = user;
+        this.attributes = attributes;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -32,11 +46,22 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public String getUsername() {
-        // Security에서 식별자로 사용 (우리는 email을 사용)
         return user.getEmail();
     }
 
-    // 편의 메서드: JWT 발급 시 userId가 필요함
+    // OAuth2User 인터페이스 구현
+    @Override
+    public Map<String, Object> getAttributes() {
+        return attributes;
+    }
+
+    @Override
+    public String getName() {
+        // OAuth2User의 식별자 (카카오 id)
+        return user.getEmail();
+    }
+
+    // 편의 메서드
     public Long getUserId() {
         return user.getId();
     }
