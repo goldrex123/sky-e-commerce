@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.Date;
 
 /**
  * 인증 관련 비즈니스 로직 (회원가입, 로그인, 로그아웃, 토큰 재발급)
@@ -28,6 +29,7 @@ public class AuthService {
     private final StringRedisTemplate redisTemplate;
 
     private static final String REFRESH_TOKEN_PREFIX = "refresh:";
+    private static final String BLACKLIST_TOKEN_PREFIX = "blacklist:";
     private static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(14);
 
     /**
@@ -62,6 +64,49 @@ public class AuthService {
             throw new IllegalArgumentException("비밀번호를 확인하세요.");
         }
 
+        return issueTokens(user);
+    }
+
+    /**
+     * 로그아웃
+     * - Access Token → Redis 블랙리스트 등록 (남은 만료시간 동안 차단)
+     * - Refresh Token → Redis에서 삭제
+     */
+    public void logout(String accessToken) {
+        Date accessTokenExpiration = jwtProvider.parseClaims(accessToken).getExpiration();
+        long remainExpiration = accessTokenExpiration.getTime() - System.currentTimeMillis();
+
+        if (remainExpiration > 0) {
+            redisTemplate.opsForValue().set(BLACKLIST_TOKEN_PREFIX + accessToken, "logout", Duration.ofMillis(remainExpiration));
+        }
+
+        Long userId = jwtProvider.getUserId(accessToken);
+        redisTemplate.delete(REFRESH_TOKEN_PREFIX + userId);
+    }
+
+    /**
+     * Access Token 재발급 (RT Rotation)
+     * - 기존 Refresh Token 검증 → 새 AT + 새 RT 발급 → 기존 RT 폐기
+     */
+    public TokenResponse refresh(String refreshToken) {
+        // RT 유효성 검증
+        if (!jwtProvider.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다");
+        }
+
+        Long userId = jwtProvider.getUserId(refreshToken);
+
+        // Redis에 저장된 RT와 일치 여부 확인 (탈취된 RT 재사용 방지)
+        String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + userId);
+        if (!refreshToken.equals(storedToken)) {
+            throw new IllegalArgumentException("이미 사용되었거나 만료된 Refresh Token입니다");
+        }
+
+        // 사용자 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+
+        // RT Rotation: 기존 RT 폐기 후 새 토큰 세트 발급
         return issueTokens(user);
     }
 

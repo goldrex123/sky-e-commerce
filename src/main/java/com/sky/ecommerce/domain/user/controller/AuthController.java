@@ -8,10 +8,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 인증 API 컨트롤러
@@ -35,5 +33,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    // POST /api/auth/logout
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestHeader("Authorization") String bearerToken) {
+        if (!StringUtils.hasText(bearerToken) || !bearerToken.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().build();
+        }
+        authService.logout(bearerToken.substring(7));
+        return ResponseEntity.noContent().build();
+    }
+
+    // POST /api/auth/refresh
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@RequestBody String refreshToken) {
+        return ResponseEntity.ok(authService.refresh(refreshToken));
     }
 }

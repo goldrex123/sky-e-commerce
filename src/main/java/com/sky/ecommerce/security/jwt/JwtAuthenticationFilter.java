@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,6 +25,7 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
+    private final StringRedisTemplate redisTemplate;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -32,12 +34,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractToken(request);
 
-        // 토큰이 존재하고 유효한 경우에만 SecurityContext에 인증 정보 등록
-        if (token != null && jwtProvider.validateToken(token)) {
+        // 토큰이 존재하고, 유효하며, 블랙리스트에 없는 경우에만 인증 등록
+        if (token != null && jwtProvider.validateToken(token) && !isBlacklisted(token)) {
             setAuthentication(token);
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Redis 블랙리스트 등록 여부 확인 (로그아웃된 토큰 차단)
+     */
+    private boolean isBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey("blacklist:" + token));
     }
 
     /**
@@ -60,12 +69,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String email = jwtProvider.getEmail(token);
         String role = jwtProvider.getRole(token);
 
-        // UsernamePasswordAuthenticationToken: Security의 기본 Authentication 구현체
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
-                        email,                                                // principal (식별자)
-                        null,                                                 // credentials (비밀번호, JWT 방식에선 불필요)
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role))  // authorities (권한)
+                        email,
+                        null,
+                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
                 );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
