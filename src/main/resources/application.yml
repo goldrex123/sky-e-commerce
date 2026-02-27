@@ -1,8 +1,10 @@
 spring:
+  profiles:
+    active: local
   datasource:
-    username: root
+    username: ecommerce
     url: jdbc:mysql://localhost:3306/ecommerce?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    password:
+    password: ecommerce123
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -29,3 +31,4 @@ jwt:
   secret: ${JWT_SECRET}
   access-token-expiry: 1800000     # 30분 (ms)
   refresh-token-expiry: 1209600000 # 14일 (ms)
+
