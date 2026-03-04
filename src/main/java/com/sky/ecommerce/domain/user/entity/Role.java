@@ -5,6 +5,7 @@ package com.sky.ecommerce.domain.user.entity;
  * Spring Security의 GrantedAuthority로 사용됨
  */
 public enum Role {
-    USER,   // 일반 사용자
-    ADMIN   // 관리자
+    USER,    // 일반 사용자
+    SELLER,  // 판매자 (USER 권한 포함)
+    ADMIN    // 최고 관리자 (SELLER + USER 권한 포함)
 }
