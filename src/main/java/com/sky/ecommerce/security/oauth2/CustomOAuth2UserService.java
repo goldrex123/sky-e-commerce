@@ -4,6 +4,7 @@ import com.sky.ecommerce.domain.user.entity.Role;
 import com.sky.ecommerce.domain.user.entity.User;
 import com.sky.ecommerce.domain.user.repository.UserRepository;
 import com.sky.ecommerce.security.userdetails.CustomUserDetails;
+import com.sky.ecommerce.security.userdetails.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
@@ -44,6 +45,8 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
                 ));
 
         // OAuth2User + UserDetails 통합 구현체로 반환
-        return new CustomUserDetails(user, oAuth2User.getAttributes());
+        return new CustomUserDetails(
+                new UserPrincipal(user.getId(), user.getEmail(), user.getRole().name(), null),
+                oAuth2User.getAttributes());
     }
 }

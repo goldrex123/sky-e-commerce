@@ -8,6 +8,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import static com.sky.ecommerce.security.userdetails.UserPrincipal.*;
+
 /**
  * Spring Security가 인증 시 사용자를 DB에서 불러오는 서비스
  * loadUserByUsername() → Security가 자동으로 호출
@@ -22,7 +24,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         return userRepository.findByEmail(email)
-                .map(CustomUserDetails::new)
+                .map(user -> new CustomUserDetails(
+                        new UserPrincipal(user.getId(), user.getEmail(), user.getRole().name(), user.getPassword())))
                 .orElseThrow(() -> new UsernameNotFoundException("사용자를 찾을 수 없습니다: " + email));
     }
 }

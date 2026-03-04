@@ -39,9 +39,9 @@ class JwtProviderTest {
         @DisplayName("userId, email, role이 정확히 담겨야 한다")
         void shouldContainCorrectClaims() {
             // given
-            Long userId = 3L;
-            String email = "xxx3@naver.com";
-            String role = "ROLE_ADMIN";
+            Long userId = 2L;
+            String email = "xxx2@naver.com";
+            String role = "SELLER";
 
             // when
             String token = jwtProvider.generateAccessToken(userId, email, role);

@@ -6,7 +6,6 @@ import com.sky.ecommerce.security.jwt.JwtAuthenticationFilter;
 import com.sky.ecommerce.security.jwt.JwtProvider;
 import com.sky.ecommerce.security.oauth2.CustomOAuth2UserService;
 import com.sky.ecommerce.security.oauth2.OAuth2SuccessHandler;
-import com.sky.ecommerce.security.userdetails.CustomUserDetailsService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +41,6 @@ import java.util.Collections;
 public class SecurityConfig {
 
     private final JwtProvider jwtProvider;
-    private final CustomUserDetailsService customUserDetailsService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final StringRedisTemplate redisTemplate;
@@ -100,7 +98,7 @@ public class SecurityConfig {
 
                 // JWT 필터를 UsernamePasswordAuthenticationFilter 앞에 삽입
                 .addFilterBefore(
-                        new JwtAuthenticationFilter(jwtProvider, redisTemplate, customUserDetailsService),
+                        new JwtAuthenticationFilter(jwtProvider, redisTemplate),
                         UsernamePasswordAuthenticationFilter.class
                 );
 

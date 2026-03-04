@@ -1,7 +1,8 @@
 package com.sky.ecommerce.security.jwt;
 
 import com.sky.ecommerce.common.exception.ErrorCode;
-import com.sky.ecommerce.security.userdetails.CustomUserDetailsService;
+import com.sky.ecommerce.security.userdetails.CustomUserDetails;
+import com.sky.ecommerce.security.userdetails.UserPrincipal;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -27,7 +27,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final StringRedisTemplate redisTemplate;
-    private final CustomUserDetailsService customUserDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -69,21 +68,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * SecurityContextHolder에 인증 정보 등록
-     * CustomUserDetails를 principal로 설정해야 @AuthenticationPrincipal이 정상 동작함
+     * DB 조회 없이 JWT 클레임만으로 UserPrincipal을 구성하고 SecurityContext에 등록
      */
     private void setAuthentication(String token) {
+        Long userId = jwtProvider.getUserId(token);
         String email = jwtProvider.getEmail(token);
+        String role = jwtProvider.getRole(token);
 
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+        CustomUserDetails userDetails = new CustomUserDetails(UserPrincipal.fromToken(userId, email, role));
 
-        UsernamePasswordAuthenticationToken authentication =
-                new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
+        UsernamePasswordAuthenticationToken authenticationToken
+                = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.debug("JWT 인증 완료 - email: {}", email);
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        log.debug("JWT 인증 완료 userId - {}, email - {},  role - {}", userId, email, role);
     }
 }

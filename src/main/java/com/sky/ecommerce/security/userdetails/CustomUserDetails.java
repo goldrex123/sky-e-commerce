@@ -1,6 +1,5 @@
 package com.sky.ecommerce.security.userdetails;
 
-import com.sky.ecommerce.domain.user.entity.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,34 +18,35 @@ import java.util.Map;
 @Getter
 public class CustomUserDetails implements UserDetails, OAuth2User {
 
-    private final User user;
+    private final UserPrincipal principal;
     private final Map<String, Object> attributes; // OAuth2 로그인 시에만 사용
 
-    // 일반 로그인용 생성자
-    public CustomUserDetails(User user) {
-        this.user = user;
+    // 일반 로그인 / JWT 필터용 생성자
+    public CustomUserDetails(UserPrincipal principal) {
+        this.principal = principal;
         this.attributes = null;
     }
 
     // OAuth2 로그인용 생성자
-    public CustomUserDetails(User user, Map<String, Object> attributes) {
-        this.user = user;
+    public CustomUserDetails(UserPrincipal principal, Map<String, Object> attributes) {
+        this.principal = principal;
         this.attributes = attributes;
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+        return List.of(new SimpleGrantedAuthority("ROLE_" + principal.role()));
     }
 
     @Override
     public String getPassword() {
-        return user.getPassword();
+        // 일반 로그인 시 DB에서 로드한 경우에만 값 존재, JWT 필터 경로에서는 null
+        return principal.password();
     }
 
     @Override
     public String getUsername() {
-        return user.getEmail();
+        return principal.email();
     }
 
     // OAuth2User 인터페이스 구현
@@ -57,12 +57,15 @@ public class CustomUserDetails implements UserDetails, OAuth2User {
 
     @Override
     public String getName() {
-        // OAuth2User의 식별자 (카카오 id)
-        return user.getEmail();
+        return principal.email();
     }
 
     // 편의 메서드
     public Long getUserId() {
-        return user.getId();
+        return principal.userId();
+    }
+
+    public String getRole() {
+        return principal.role();
     }
 }
