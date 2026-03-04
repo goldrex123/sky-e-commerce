@@ -1,5 +1,8 @@
 package com.sky.ecommerce.domain.user.service;
 
+import com.sky.ecommerce.common.exception.AuthException;
+import com.sky.ecommerce.common.exception.ErrorCode;
+import com.sky.ecommerce.common.exception.NotFoundException;
 import com.sky.ecommerce.domain.user.dto.LoginRequest;
 import com.sky.ecommerce.domain.user.dto.SignupRequest;
 import com.sky.ecommerce.domain.user.dto.TokenResponse;
@@ -38,7 +41,7 @@ public class AuthService {
     @Transactional
     public TokenResponse signup(SignupRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("이미 사용 중인 이메일입니다");
+            throw new AuthException(ErrorCode.DUPLICATE_EMAIL);
         }
 
         User user = User.builder()
@@ -58,10 +61,10 @@ public class AuthService {
     @Transactional
     public TokenResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+                .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND_BY_EMAIL));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호를 확인하세요.");
+            throw new AuthException(ErrorCode.WRONG_PASSWORD);
         }
 
         return issueTokens(user);
@@ -91,7 +94,7 @@ public class AuthService {
     public TokenResponse refresh(String refreshToken) {
         // RT 유효성 검증
         if (!jwtProvider.validateToken(refreshToken)) {
-            throw new IllegalArgumentException("유효하지 않은 Refresh Token입니다");
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
 
         Long userId = jwtProvider.getUserId(refreshToken);
@@ -99,12 +102,12 @@ public class AuthService {
         // Redis에 저장된 RT와 일치 여부 확인 (탈취된 RT 재사용 방지)
         String storedToken = redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + userId);
         if (!refreshToken.equals(storedToken)) {
-            throw new IllegalArgumentException("이미 사용되었거나 만료된 Refresh Token입니다");
+            throw new AuthException(ErrorCode.REUSED_REFRESH_TOKEN);
         }
 
         // 사용자 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+                .orElseThrow(() -> new NotFoundException(ErrorCode.USER_NOT_FOUND));
 
         // RT Rotation: 기존 RT 폐기 후 새 토큰 세트 발급
         return issueTokens(user);

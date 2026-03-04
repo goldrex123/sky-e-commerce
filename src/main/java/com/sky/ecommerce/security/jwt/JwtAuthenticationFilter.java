@@ -1,5 +1,7 @@
 package com.sky.ecommerce.security.jwt;
 
+import com.sky.ecommerce.common.exception.ErrorCode;
+import com.sky.ecommerce.security.userdetails.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,13 +10,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * 매 요청마다 JWT를 검증하고 SecurityContext에 인증 정보를 등록하는 필터
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtProvider jwtProvider;
     private final StringRedisTemplate redisTemplate;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -34,9 +36,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractToken(request);
 
-        // 토큰이 존재하고, 유효하며, 블랙리스트에 없는 경우에만 인증 등록
-        if (token != null && jwtProvider.validateToken(token) && !isBlacklisted(token)) {
-            setAuthentication(token);
+        if (token != null) {
+            if (!jwtProvider.validateToken(token) || isBlacklisted(token)) {
+                // 유효하지 않거나 블랙리스트에 등록된 토큰 → EntryPoint에서 A007로 처리
+                request.setAttribute("exception", ErrorCode.INVALID_ACCESS_TOKEN);
+            } else {
+                setAuthentication(token);
+            }
         }
 
         filterChain.doFilter(request, response);
@@ -63,20 +69,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     /**
      * SecurityContextHolder에 인증 정보 등록
+     * CustomUserDetails를 principal로 설정해야 @AuthenticationPrincipal이 정상 동작함
      */
     private void setAuthentication(String token) {
-        Long userId = jwtProvider.getUserId(token);
         String email = jwtProvider.getEmail(token);
-        String role = jwtProvider.getRole(token);
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(
-                        email,
+                        userDetails,
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                        userDetails.getAuthorities()
                 );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        log.debug("JWT 인증 완료 - userId: {}, email: {}", userId, email);
+        log.debug("JWT 인증 완료 - email: {}", email);
     }
 }
