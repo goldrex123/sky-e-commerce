@@ -10,7 +10,7 @@ import lombok.*;
  * - 소셜 로그인: provider + providerId 사용, password는 null
  */
 @Entity
-@Table(name = "user")
+@Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
@@ -37,6 +37,8 @@ public class User extends BaseTimeEntity {
     // OAuth2 소셜 로그인 정보 (일반 로그인 시 null)
     private String provider;    // ex) "kakao"
     private String providerId;  // ex) "12345678"
+
+    private Long pointBalance = 0L;
 
     // updatePassword(String encodedPassword) 메서드를 작성해보세요.
     // 힌트: 기존 password 필드를 새 값으로 교체하는 간단한 메서드입니다.
