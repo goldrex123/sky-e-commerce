@@ -10,7 +10,7 @@ import lombok.*;
  * - 소셜 로그인: provider + providerId 사용, password는 null
  */
 @Entity
-@Table(name = "users")
+@Table(name = "user")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
