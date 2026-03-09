@@ -78,6 +78,7 @@ public class SecurityConfig {
                                 "/api/auth/**", "/oauth2/**", "/login/oauth2/**",
                                 "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
                         ).permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/products/**").permitAll()  // 상품 조회는 인증 불필요
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")          // ADMIN만
                         .requestMatchers("/api/seller/**").hasRole("SELLER")        // SELLER + ADMIN (계층 적용)
                         .anyRequest().authenticated()                               // USER 이상

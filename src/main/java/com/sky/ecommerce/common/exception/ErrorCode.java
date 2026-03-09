@@ -4,12 +4,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-/**
- * 전역 에러 코드 정의
- * - S: 성공
- * - C: 공통 (Common)
- * - A: 인증/인가 (Auth)
- */
 @Getter
 @RequiredArgsConstructor
 public enum ErrorCode {
@@ -30,7 +24,11 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "A006", "사용자를 찾을 수 없습니다"),
     INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED, "A007", "유효하지 않거나 만료된 Access Token입니다"),
     ACCESS_TOKEN_REQUIRED(HttpStatus.UNAUTHORIZED, "A008", "인증이 필요합니다"),
-    ACCESS_DENIED(HttpStatus.FORBIDDEN, "A009", "접근 권한이 없습니다");
+    ACCESS_DENIED(HttpStatus.FORBIDDEN, "A009", "접근 권한이 없습니다"),
+
+    // 상품 (P)
+    PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "상품을 찾을 수 없습니다"),
+    PRODUCT_FORBIDDEN(HttpStatus.FORBIDDEN, "P002", "해당 상품에 대한 권한이 없습니다");
 
     private final HttpStatus httpStatus;
     private final String code;
